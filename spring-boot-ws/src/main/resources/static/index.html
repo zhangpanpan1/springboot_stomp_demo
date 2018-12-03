@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stomp Demo Test</title>
+    <link rel="stylesheet" href="css/main.css"/>
+    <script src="https://cdn.bootcss.com/stomp.js/2.3.3/stomp.js"></script>
+
+
+
+    　<link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="http://cdn.static.runoob.com/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/sockjs/1.0.0/sockjs.min.js"></script>
+
+    <script>
+        var token = 'USER_TOKEN_LOGIN_67e103b0761e60683e83c559be18d40c_03d4d712a422414a89c93251f96a1a2e';
+        var username ='zhangpan';
+        var sendMessage = null;
+        var disConnect = null;
+        function connect() {
+            var socket = new SockJS('http://127.0.0.1:8088/webSocket');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({ token: token}, function (frame) {
+                console.log('Connected: ' + frame);
+                updateState('连接成功');
+                stompClient.subscribe('/topic/greetings', function (message) {
+                    onMessage(JSON.parse(message.body));
+                });
+                stompClient.subscribe("/user/"+username+"/chat", function (message) {
+                    onMessage(JSON.parse(message.body));
+                });
+            });
+
+            sendMessage = function (destination, headers, body) {
+                stompClient.send(destination, headers,body)
+            };
+            disConnect = function () {
+                stompClient.disconnect();
+                console.log('client connect break')
+            }
+        }
+/*
+
+         function connect() {
+            var client = Stomp.client('ws://127.0.0.1:8088/webSocket/websocket');
+            client.heartbeat.outgoing = 5000;
+            client.heartbeat.incoming = 0;
+
+            client.connect({
+                token: username
+            }, function (succ) {
+                console.log('client connect success:', succ);
+                updateState('连接成功');
+
+                // 订阅广播
+                client.subscribe("/topic/greetings", onMessage);
+                // 订阅消息
+                client.subscribe("/topic/comment", onMessage);
+            }, function (error) {
+                console.log('client connect error:', error);
+                updateState('连接失败');
+            });
+            sendMessage = function (destination, headers, body) {
+                client.send(destination, headers, body)
+            };
+            disConnect = function () {
+                client.disconnect();
+                console.log('client connect break')
+            }
+        }
+*/
+
+        function onMessage(message) {
+            console.log(message);
+            insertChat(false, message.destination, message.body)
+        }
+
+        function send() {
+            var destination = document.getElementById("destination").value;
+            var body =document.getElementById("content").value;
+
+            if (sendMessage == null) {
+                alert('ws connect break');
+                return;
+            }
+            sendMessage(destination, {},JSON.stringify(body));
+            insertChat(true, destination, body)
+        }
+
+        function updateState(state) {
+            document.getElementById("state").innerHTML = state;
+        }
+
+        function insertChat(isLeft, destination, body) {
+            var p = document.createElement('p');
+            if (isLeft) {
+                p.setAttribute('class', 'p-left');
+            } else {
+                p.setAttribute('class', 'p-right');
+            }
+            p.innerHTML = destination + '<br/>' + body;
+            document.getElementById("chat").appendChild(p);
+        }
+
+    </script>
+</head>
+<body>
+<div class="body-left">
+    <div id="state">未连接</div>
+    <button id="connect" onclick="connect()">连接</button>
+    <button id="disConnect" onclick="disConnect()">断开</button>
+    <div>
+        <input id="destination" type="text" placeholder="destination" value="/app/sendMsg"/>
+        <textarea id="content" rows="10", placeholder="payload"> heelo2</textarea>
+        <button id="send" onclick="send()">发送</button>
+    </div>
+    <div>
+    </div>
+</div>
+<div id="chat" class="body-right">
+    <p class="p-left">client message ...</p>
+    <p class="p-right">server message ...</p>
+</div>
+</body>
+</html>
